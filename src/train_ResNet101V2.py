@@ -6,12 +6,15 @@ import os
 from sklearn.model_selection import train_test_split
 from PyDataset import PyDataset
 from tensorflow.keras.applications import resnet_v2
+from tensorflow.keras.applications import EfficientNetV2S
+from tensorflow.keras.applications import EfficientNetV2M
+
 
 
 
 def get_generators(train_df, val_df, batch_size=32, model_type="resnet_v2"):
-    train_gen = PyDataset(train_df, batch_size=batch_size, preprocess_fn=resnet_v2.preprocess_input, shuffle=True)
-    val_gen = PyDataset(val_df, batch_size=batch_size, preprocess_fn=resnet_v2.preprocess_input, shuffle=False)
+    train_gen = PyDataset(train_df,target_size=(224,224), batch_size=batch_size, preprocess_fn=resnet_v2.preprocess_input, shuffle=True)
+    val_gen = PyDataset(val_df,target_size=(224,224), batch_size=batch_size, preprocess_fn=resnet_v2.preprocess_input, shuffle=False)
     return train_gen, val_gen
 
 if __name__ == "__main__":
