@@ -31,22 +31,14 @@ class PyDataset(tf.keras.utils.Sequence):
         # Alle Augment-Operationen als TF-ops, danach wieder resize
         if tf.random.uniform([]) < 0.5:
             image_tensor = tf.image.flip_left_right(image_tensor)
-        if tf.random.uniform([]) < 0.3:
+        if tf.random.uniform([]) < 0.5:
             image_tensor = tf.image.random_brightness(image_tensor, max_delta=0.2)
-        if tf.random.uniform([]) < 0.3:
+        if tf.random.uniform([]) < 0.5:
             image_tensor = tf.image.random_contrast(image_tensor, lower=0.8, upper=1.2)
-        if tf.random.uniform([]) < 0.3:
+        if tf.random.uniform([]) < 0.5:
             k = tf.random.uniform([], minval=0, maxval=4, dtype=tf.int32)
             image_tensor = tf.image.rot90(image_tensor, k)
-        if tf.random.uniform([]) < 0.3:
-            # Zoom: crop a random box and resize back to target
-            h, w = tf.shape(image_tensor)[0], tf.shape(image_tensor)[1]
-            crop_frac = tf.random.uniform([], 0.8, 1.0)
-            ch = tf.cast(tf.cast(h, tf.float32) * crop_frac, tf.int32)
-            cw = tf.cast(tf.cast(w, tf.float32) * crop_frac, tf.int32)
-            # ensure crop size at least 1
-            ch = tf.maximum(ch, 1)
-            cw = tf.maximum(cw, 1)
+        if tf.random.uniform([]) < 0.5:
             image_tensor = tf.image.central_crop(image_tensor,central_fraction=0.9)
         # am Ende auf target_size bringen
         image_tensor = tf.image.resize(image_tensor, self.target_size)
