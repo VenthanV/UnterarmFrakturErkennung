@@ -1,52 +1,56 @@
 # src/resnet_model.py
 from tensorflow.keras.applications import ResNet101V2
-from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout, BatchNormalization, Activation
-from tensorflow.keras.optimizers import Adam, AdamW
-import numpy as np
+from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import l2
+from Base_CNN_Model import BaseCNNModel
+from tensorflow.keras.applications.resnet_v2 import preprocess_input
+
 import tensorflow as tf
+import numpy as np
+import pandas as pd
+from DataGenerator import DataGenerator
 
-class ResNet101V2Model:
-    def __init__(self, input_shape=(224,224,3)):
-        self.input_shape = input_shape
-        self.build_model()
 
+class ResNet101V2Model(BaseCNNModel):
     def build_model(self):
-        print("Baue ResNet101V2 Modell...")
-        # Basis-Modell
         base = ResNet101V2(include_top=False, input_shape=self.input_shape, weights='imagenet')
-        base.trainable = False  # zunächst alles einfrieren
-
+        base.trainable = False
         x = GlobalAveragePooling2D()(base.output)
-
-        # Dense + BatchNorm + Swish + Dropout
-        x = Dense(128)(x)
+        x = Dense(128, kernel_regularizer=l2(0.001))(x)
         x = BatchNormalization()(x)
         x = Activation('swish')(x)
-        x = Dropout(0.5)(x)
+        x = Dropout(0.3)(x)
+
 
         output = Dense(1, activation='sigmoid')(x)
         self.model = Model(inputs=base.input, outputs=output)
-        self.model.compile(
-            optimizer=Adam(3e-4),
-            loss='binary_crossentropy',
-            metrics=[
-                tf.keras.metrics.Recall(name="recall"),
-                tf.keras.metrics.Precision(name="precision"),
-                tf.keras.metrics.BinaryAccuracy(name="accuracy"),
-                tf.keras.metrics.AUC(name="auc")
-            ]
-        )
-        self.base_model = base  # für späteres finetuning
-        print("Modell gebaut.")
+        self.base_model = base
 
 
+if __name__ == "__main__":
+    # Seed setzen
+    tf.random.set_seed(42)
+    np.random.seed(42)
 
+    # Dataset laden
+    ukgm = pd.read_csv("../data/dataset.csv")
+    ukgm['image_path'] = '../data/' + ukgm['image_path'].astype(str)
+    ukgm['label'] = ukgm['label'].astype(int)
 
+    # Daten splitten
+    train_df, val_df, test_df = DataGenerator.split_data(ukgm)
 
+    # Generatoren erstellen
+    train_gen, val_gen = DataGenerator.get_generators(train_df, val_df, model_type="resnet", batch_size=32)
 
-    def predict(self, X):
-        return np.argmax(self.model.predict(X), axis=1)
+    # Modell initialisieren
+    num_classes = ukgm['label'].nunique()
+    model = ResNet101V2Model(input_shape=(224, 224, 3), num_classes=num_classes)
 
-    def evaluate(self, X_test, y_test):
-        return self.model.evaluate(X_test, y_test)
+    # Optional: Model summary anzeigen
+  #  model.model.summary()
+
+    # Training starten
+    model.train(train_gen, val_gen, epochs_feature=5, epochs_finetune=25, fine_tune_layers=40)
+    #model.model.save()

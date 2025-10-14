@@ -47,7 +47,7 @@ class PyDataset(tf.keras.utils.Sequence):
             # ensure crop size at least 1
             ch = tf.maximum(ch, 1)
             cw = tf.maximum(cw, 1)
-            image_tensor = tf.image.random_crop(image_tensor, size=[ch, cw, 3])
+            image_tensor = tf.image.central_crop(image_tensor,central_fraction=0.9)
         # am Ende auf target_size bringen
         image_tensor = tf.image.resize(image_tensor, self.target_size)
         return image_tensor
