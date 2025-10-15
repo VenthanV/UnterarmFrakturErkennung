@@ -6,8 +6,6 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 import numpy as np
 from tensorflow.keras.metrics import AUC, Precision, Recall
 
-
-
 class BaseCNNModel:
     def __init__(self, input_shape=(224, 224, 3), num_classes=1, loss='binary_crossentropy', metrics=None):
         self.input_shape = input_shape
@@ -74,7 +72,7 @@ class BaseCNNModel:
             loss=self.loss,
             metrics=self.metrics
         )
-        self.model.fit(train_gen, validation_data=val_gen, epochs=epochs_finetune, callbacks=callbacks, verbose=1)
+        self.model.fit(train_gen, validation_data=val_gen, epochs=epochs_finetune, callbacks=callbacks,multiprocessing=True, verbose=1)
         print("🏁 Training abgeschlossen.")
 
     def predict(self, X):
