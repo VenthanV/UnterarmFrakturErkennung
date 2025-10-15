@@ -43,7 +43,7 @@ if __name__ == "__main__":
     model = ConvNeXtModel(input_shape=(224, 224, 3), num_classes=num_classes)
 
     # Optional: Model summary anzeigen
-    model.model.summary()
+    #model.model.summary()
 
     # Training starten
     model.train(train_gen, val_gen, epochs_feature=5, epochs_finetune=10)
