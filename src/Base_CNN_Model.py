@@ -3,25 +3,30 @@ import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam, AdamW
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
-import numpy as np
 from tensorflow.keras.metrics import AUC, Precision, Recall
+import numpy as np
 
 class BaseCNNModel:
     def __init__(self, input_shape=(224, 224, 3), num_classes=1, loss='binary_crossentropy', metrics=None):
         self.input_shape = input_shape
         self.num_classes = num_classes
         self.loss = loss
+
+        # Standardmetriken & Loss automatisch setzen
         if metrics is None:
             if num_classes <= 2:
-                print("Binary classification setup erkannt.")
+                print("🧩 Binary classification setup erkannt.")
                 self.metrics = ['accuracy', AUC(name='auc'), Precision(name='precision'), Recall(name='recall')]
                 self.loss = 'binary_crossentropy'
                 self.num_classes = 1  # wichtig für predict()
             else:
-                print("Multi-class setup erkannt.")
+                print("🧩 Multi-class setup erkannt.")
                 self.metrics = ['accuracy']
                 self.loss = 'categorical_crossentropy'
+        else:
+            self.metrics = metrics
 
+        # Kindklasse muss build_model implementieren
         self.build_model()
 
     def build_model(self):
@@ -35,9 +40,16 @@ class BaseCNNModel:
               learning_rate_ft=1e-5):
         """
         Zweistufiges Training:
-        1. Feature Extraction (Backbone frozen)
-        2. Fine-Tuning (letzte Schichten trainierbar)
+        1️⃣ Feature Extraction (Backbone frozen)
+        2️⃣ Fine-Tuning (letzte Layers freigeschaltet)
         """
+
+        # Wenn Dataset-Wrapper (z. B. TFDataDataset) übergeben wurde → extrahiere echtes Dataset
+        if hasattr(train_gen, "get_dataset"):
+            train_gen = train_gen.get_dataset()
+        if hasattr(val_gen, "get_dataset"):
+            val_gen = val_gen.get_dataset()
+
         print("\n🚀 Stage 1: Feature Extraction (Backbone frozen)...")
         self.base_model.trainable = False
         self.model.compile(
@@ -62,7 +74,6 @@ class BaseCNNModel:
         )
 
         print("\n🔓 Stage 2: Fine-Tuning der letzten Schichten...")
-        # Letzte Schichten trainierbar machen
         if fine_tune_layers > 0:
             for layer in self.base_model.layers[-fine_tune_layers:]:
                 layer.trainable = True
@@ -72,7 +83,15 @@ class BaseCNNModel:
             loss=self.loss,
             metrics=self.metrics
         )
-        self.model.fit(train_gen, validation_data=val_gen, epochs=epochs_finetune, callbacks=callbacks,multiprocessing=True, verbose=1)
+
+        self.model.fit(
+            train_gen,
+            validation_data=val_gen,
+            epochs=epochs_finetune,
+            callbacks=callbacks,
+            verbose=1
+        )
+
         print("🏁 Training abgeschlossen.")
 
     def predict(self, X):

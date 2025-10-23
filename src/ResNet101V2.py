@@ -10,7 +10,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 from DataGenerator import DataGenerator
-
+from PyDataset import ImageSequence
 
 class ResNet101V2Model(BaseCNNModel):
     def build_model(self):
@@ -40,17 +40,12 @@ if __name__ == "__main__":
 
     # Daten splitten
     train_df, val_df, test_df = DataGenerator.split_data(ukgm)
+    model = ResNet101V2Model(input_shape=(224, 224, 3), num_classes=ukgm['label'].nunique())
 
-    # Generatoren erstellen
-    train_gen, val_gen = DataGenerator.get_generators(train_df, val_df, model_type="resnet", batch_size=32)
+    # Generatoren als tf.data.Dataset
+    train_ds, val_ds = DataGenerator.get_generators(train_df, val_df, model_type="resnet", batch_size=32)
 
-    # Modell initialisieren
-    num_classes = ukgm['label'].nunique()
-    model = ResNet101V2Model(input_shape=(224, 224, 3), num_classes=num_classes)
+    # Training
+    model.train(train_ds, val_ds, epochs_feature=5, epochs_finetune=25, fine_tune_layers=40)
 
-    # Optional: Model summary anzeigen
-  #  model.model.summary()
 
-    # Training starten
-    model.train(train_gen, val_gen, epochs_feature=5, epochs_finetune=25, fine_tune_layers=40)
-    #model.model.save()

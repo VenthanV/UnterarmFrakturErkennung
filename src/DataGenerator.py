@@ -1,5 +1,5 @@
 # src/data_generator.py
-from PyDataset import PyDataset
+from PyDataset import ImageSequence
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.applications import resnet_v2, convnext
 
@@ -19,7 +19,7 @@ class DataGenerator:
         else:
             raise ValueError(f"Unsupported model_type: {model_type}")
 
-        train_gen = PyDataset(
+        train_gen = ImageSequence(
             train_df,
             target_size=(224, 224),
             batch_size=batch_size,
@@ -28,7 +28,7 @@ class DataGenerator:
             shuffle=True
         )
 
-        val_gen = PyDataset(
+        val_gen = ImageSequence(
             val_df,
             target_size=(224, 224),
             batch_size=batch_size,
