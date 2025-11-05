@@ -1,30 +1,43 @@
 # src/resnet_model.py
-from tensorflow.keras.applications import ResNet101V2
+import tensorflow as tf
+from tensorflow.keras.applications import ResNet50V2
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout, BatchNormalization, Activation
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
-from Base_CNN_Model import BaseCNNModel
-from tensorflow.keras.applications.resnet_v2 import preprocess_input
 
-import tensorflow as tf
 import numpy as np
 import pandas as pd
 from DataGenerator import DataGenerator
-from PyDataset import ImageSequence
+
+from Base_CNN_Model import BaseCNNModel  # Pfad/Namensgebung wie bei dir
+# Falls ihr das Preprocessing im DataGenerator erledigt, hier NICHT erneut anwenden.
 
 class ResNet101V2Model(BaseCNNModel):
-    def build_model(self):
-        base = ResNet101V2(include_top=False, input_shape=self.input_shape, weights='imagenet')
+    def build_model(self, dropout_rate=0.3, dense_units=128, weight_decay=1e-4):
+        base = ResNet50V2(
+            include_top=False,
+            input_shape=self.input_shape,
+            weights='imagenet'
+        )
+
+        # Start: Feature-Extraktion
         base.trainable = False
-        x = GlobalAveragePooling2D()(base.output)
-        x = Dense(128, kernel_regularizer=l2(0.001))(x)
-        x = BatchNormalization()(x)
-        x = Activation('swish')(x)
-        x = Dropout(0.3)(x)
 
+        x = GlobalAveragePooling2D(name="gap")(base.output)
+        x = Dense(dense_units, kernel_regularizer=l2(weight_decay), name="fc")(x)
+        x = BatchNormalization(name="fc_bn")(x)
+        x = Activation('swish', name="fc_swish")(x)
+        x = Dropout(dropout_rate, name="fc_do")(x)
 
-        output = Dense(1, activation='sigmoid')(x)
-        self.model = Model(inputs=base.input, outputs=output)
+        # Output je nach Setup aus Base:
+        if self.num_classes == 1:
+            # binary (Base hat loss='binary_crossentropy' gesetzt)
+            output = Dense(1, activation='sigmoid', dtype="float32", name="pred")(x)
+        else:
+            # multi-class (Base nutzt sparse_categorical_crossentropy)
+            output = Dense(self.num_classes, activation='softmax', dtype="float32", name="pred")(x)
+
+        self.model = Model(inputs=base.input, outputs=output, name="ResNet101V2_custom")
         self.base_model = base
 
 
